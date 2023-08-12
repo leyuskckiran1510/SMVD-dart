@@ -1,3 +1,10 @@
+"""
+Author :- Leyuskc
+Github Url:- https://github.com/leyuskckiran1510/telegram
+
+"""
+
+
 import requests
 from urllib.parse import unquote
 import time
