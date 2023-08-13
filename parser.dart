@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-var log = print;
-// var print = log;
+// var log = print;
+var print = log;
 
 enum Redirects { noRedirect, builtIn, manual }
 
@@ -106,17 +106,27 @@ class Session {
       request.cookies.addAll(
           _cookies.entries.map((entry) => Cookie(entry.key, entry.value)));
     }
+    print("From Gets Of [Requests] [+]\n\t${request.cookies}");
     if (_headers.isNotEmpty) {
       _headers.forEach((x, y) => request.headers.add(x, y));
     }
 
-    final response = await request.close();
-    if (response.statusCode == 302 && redirect == Redirects.manual) {
-      return await gets(response.headers['location']![0], Redirects.manual);
-    }
+    var response = await request.close();
     response.cookies.forEach((cookie) {
       _cookies[cookie.name] = cookie.value;
     });
+
+    if (response.statusCode == 302 && redirect == Redirects.manual) {
+        print("From Gets [+]${response.cookies} and for \n\t[-] $_cookies");
+        String temp = response.headers['location']![0];
+        if(temp.startsWith("/")){
+            return await gets(durl, Redirects.manual);
+        }
+        else{
+            return await gets(temp, Redirects.manual);
+        }
+    }
+
     return response;
   }
 
@@ -365,6 +375,14 @@ class Run {
   }
 
   Future<Map>? twitter(String url) async {
+    HttpClientResponse res = await client.gets("https://www.twitter.com", Redirects.manual);
+    res = await client.gets(url, Redirects.manual);
+    print("${res.statusCode}");
+    print("Clientes Cookies Now :- ${client._cookies}");
+    Map dic =jsonDecode(await res.transform(utf8.decoder).join());
+    print("${dic}");
+    // print(res);
+    // print(res.headers);
     return {};
   }
 
@@ -392,7 +410,8 @@ class Run {
         return await reddit(temp)!;
       case "twitter":
         print("Calling Twitter....");
-        return await twitter(temp)!;
+        throw "\n\t=======================================\n\t|| Twitter Is not implemnted For Now ||\n\t=======================================\n ";
+        // return await twitter(temp)!;
       default:
         print("Bad Url Format ");
         return {"error":"Bad Url"};
