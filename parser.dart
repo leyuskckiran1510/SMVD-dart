@@ -52,6 +52,10 @@ class Session {
 
   Future<HttpClientResponse> gets(String durl, Redirects redirect) async {
     final url = Uri.parse(durl);
+    if(url.queryParametersAll.containsKey("lr") && url.queryParameters["lr"] =="tiktok_m"){
+        url.queryParametersAll["lr"]![0]=="unwatermarked";
+        url.queryParameters["lr"] = "unwatermarked";
+    }
     final request = await _client.getUrl(url);
     if (redirect == Redirects.builtIn) {
       request.followRedirects = true;
@@ -270,9 +274,18 @@ class Parse {
   Future<String> link() async {
     dynamic a = Run();
     // dynamic d = await a.youtube("https://youtu.be/hcsX5Qd2GLo");
-    // dynamic d = await a.tiktok("https://www.tiktok.com/@ggkaam610/video/7260425464211098898?is_from_webapp=1&sender_device=pc");
-    dynamic d =
-        await a.facebook("https://www.facebook.com/watch/?v=632518552179712");
+    dynamic d = await a.tiktok("https://www.tiktok.com/@ggkaam610/video/7260425464211098898?is_from_webapp=1&sender_device=pc");
+    // https://www.tiktok.com/@miraculous_bogaboo000/video/7249121848166731013?is_from_webapp=1
+    // https://v16-webapp-prime.tiktok.com/video/tos/useast2a/tos-useast2a-ve-0068c001/
+    // osineBQjgEB9M8y0QgKfDb8JJGmQkoAHLBSRQi/
+    //?a=1988&ch=0&cr=3&dr=0&lr=tiktok_m&cd=0%7C0%7C1%7C3&cv=1
+    //&br=1370&bt=685&cs=0&ds=3&ft=_RwJrB4eq8ZmoXxP7c_vjmT68AhLrus
+    //&mime_type=video_mp4
+    //&qs=0&rc=ODc4aGZnOTo2OzUzNTM3ZkBpMzkzcjM6ZjUzbDMzNzczM0AtYjI2NS8yNS0xLjRiMGE1YSNjZnFscjRfbWFgLS1kMTZzcw%3D%3D
+    //&btag=e00090000&expire=1691907676&l=2023081300201076588223A06604EAF682
+    //&ply_type=2&policy=2&signature=8040003bd0c8258be9f5f524801aea79&tk=tt_chain_token&lr=unwatermarked
+    // dynamic d =
+    //     await a.facebook("https://www.facebook.com/watch/?v=632518552179712");
     for (var url in d["urls"]["videos"]) {
       print("\n URLS:- [+]\n\t $url");
     }
