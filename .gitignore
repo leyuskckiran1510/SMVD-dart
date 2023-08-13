@@ -25,6 +25,9 @@ doc/api/
 
 *.so
 test.*
+*.mp4
+*.json
+delete.*
 
 .flutter-plugins
 .flutter-plugins-dependencies
