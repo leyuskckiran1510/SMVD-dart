@@ -1,55 +1,52 @@
 import 'dart:async';
 import 'dart:convert';
-// import 'dart:developer';
+import 'dart:developer';
 import 'dart:io';
 
-
 var log = print;
-
+// var print = log;
 
 enum Redirects { noRedirect, builtIn, manual }
 
-
-String cleaner(String str){
-    Map<String,String> utfs = {
-        "\\u002F":"/",
-        "\\u0026":"&",
-        "\\u003D":"=",
-        "\\u0021":"!",
-        "\\u0022":"\"",
-        "\\u0023":"#",
-        "\\u0024":"\$",
-        "\\u0025":"%",
-        "\\u0028":"(",
-        "\\u0029":")",
-        "\\u002A":"*",
-        "\\u002B":"+",
-        "\\u002C":",",
-        "\\u002D":"-",
-        "\\u002E":".",
-        "\\u003A":":",
-        "\\u003B":";",
-        "\\u003C":"<",
-        "\\u003E":">",
-        "\\u003F":"?",
-        "\\u0040":"@",
-        "\\u005B":"[",
-        "\\u005C":"\\",
-        "\\u005D":"]",
-        "\\u005E":"^",
-        "\\u005F":"_",
-        "\\u0060":"`",
-        "\\u007B":"{",
-        "\\u007C":"|",
-        "\\u007D":"}",
-        "\\u007E":"~",
-    };
-    for(var ky in utfs.keys){
-        str = str.replaceAll(ky,utfs[ky]!);
-    }
-    return str;
+String cleaner(String str) {
+  Map<String, String> utfs = {
+    "\\u002F": "/",
+    "\\u0026": "&",
+    "\\u003D": "=",
+    "\\u0021": "!",
+    "\\u0022": "\"",
+    "\\u0023": "#",
+    "\\u0024": "\$",
+    "\\u0025": "%",
+    "\\u0028": "(",
+    "\\u0029": ")",
+    "\\u002A": "*",
+    "\\u002B": "+",
+    "\\u002C": ",",
+    "\\u002D": "-",
+    "\\u002E": ".",
+    "\\u003A": ":",
+    "\\u003B": ";",
+    "\\u003C": "<",
+    "\\u003E": ">",
+    "\\u003F": "?",
+    "\\u0040": "@",
+    "\\u005B": "[",
+    "\\u005C": "\\",
+    "\\u005D": "]",
+    "\\u005E": "^",
+    "\\u005F": "_",
+    "\\u0060": "`",
+    "\\u007B": "{",
+    "\\u007C": "|",
+    "\\u007D": "}",
+    "\\u007E": "~",
+  };
+  for (var ky in utfs.keys) {
+    str = str.replaceAll(ky, utfs[ky]!);
+  }
+  return str;
 }
-
 
 class Session {
   final HttpClient _client = HttpClient();
@@ -97,7 +94,6 @@ class Session {
   }
 
   Future<HttpClientResponse> gets(String durl, Redirects redirect) async {
-    
     var url = Uri.parse(durl);
     final request = await _client.getUrl(url);
     if (redirect == Redirects.builtIn) {
@@ -116,7 +112,6 @@ class Session {
 
     final response = await request.close();
     if (response.statusCode == 302 && redirect == Redirects.manual) {
-      ////log("Manula redirection to -> ${response.headers['location']![0]} as inbuilt redirect is crappy..");
       return await gets(response.headers['location']![0], Redirects.manual);
     }
     response.cookies.forEach((cookie) {
@@ -150,7 +145,6 @@ class Session {
   }
 }
 
-
 class Run {
   Map<String, String> headers = {
     'accept': '*/*',
@@ -180,10 +174,7 @@ class Run {
     await client.gets("https://youtube.com", Redirects.builtIn);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
 
-    List<String> sepatators = [
-      '"adaptiveFormats":',
-     '},"playerAds":'
-    ];
+    List<String> sepatators = ['"adaptiveFormats":', '},"playerAds":'];
 
     if (res.statusCode == 200) {
       Map urls = {
@@ -196,16 +187,15 @@ class Run {
         dynamic dict = jsonDecode(b);
         for (var x in dict) {
           if (x["mimeType"].split("/")[0] == "video") {
-            urls["urls"]["videos"].add(x["url"]);
+            urls["urls"]["videos"].add(x);
           } else if (x["mimeType"].split("/")[0] == "audio") {
-            urls["urls"]["audios"].add(x["url"]);
+            urls["urls"]["audios"].add(x);
           } else {
-            urls["urls"]["others"].add(x["urls"]);
+            urls["urls"]["others"].add(x);
           }
         }
         return urls;
       } catch (e) {
-        ////log("$e");
         return {"error": "$e"};
       }
     } else {
@@ -221,24 +211,21 @@ class Run {
       'referer': 'https//www.tiktok.com/',
       'sec-fetch-dest': 'video',
     };
-    url = url.replaceAll("tiktok_m","unwatermarked");
+    url = url.replaceAll("tiktok_m", "unwatermarked");
     File file = File("test.mp4");
     client.setheaders(headers);
-    //print(client._headers);
-    //print(client._cookies);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
     if (res.statusCode == 200 || res.statusCode == 206) {
       await res.pipe(file.openWrite());
-      //log("TikTok Downloaded to file");
     } else {
-      //log("TikTok Download Failed ${res.statusCode}");
+      log("Error Writing to File ??");
     }
   }
 
   Future<Map>? tiktok(String url) async {
     await client.gets("https://www.tiktok.com/", Redirects.builtIn);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
-    List<String> sepatators = ['"playAddr":"','","downloadAddr"'];
+    List<String> sepatators = ['"playAddr":"', '","downloadAddr"'];
     if (res.statusCode == 200) {
       String content = await res.transform(utf8.decoder).join();
       try {
@@ -247,16 +234,15 @@ class Run {
         };
         String b = content.split(sepatators[0])[1];
         b = b.split(sepatators[1])[0];
-        // b = b.replaceAll(RegExp(r"\\u002F"), "/");
+
         b = cleaner(b);
-        //log("Downloadgin .. .. .");
+
         await tiktokDownload(b);
-        b = b.replaceAll("tiktok_m","unwatermarked");
-        urls["urls"]["videos"].add(b);
+        b = b.replaceAll("tiktok_m", "unwatermarked");
+        urls["urls"]["videos"].add({"url":b,"quality":"hd"});
         return urls;
       } catch (e) {
-        //log("Their Was And Error $e");
-        //print("$e");
+        log("Their Was And Error $e");
         return {"error": "$e"};
       }
     }
@@ -285,10 +271,12 @@ class Run {
       String c = b.split(sepatators[1])[0];
       List lis = jsonDecode(c);
       for (Map dic in lis) {
+        Map t = dic;
+        t["url"] = t["base_url"];
         if (dic["mime_type"] == "video/mp4") {
-          urls["urls"]["videos"].add(dic["base_url"]);
+          urls["urls"]["videos"].add(t);
         } else if (dic["mime_type"] == "audio/mp4") {
-          urls["urls"]["audios"].add(dic["base_url"]);
+          urls["urls"]["audios"].add(t);
         }
       }
       return urls;
@@ -302,8 +290,9 @@ class Run {
         await client.gets("https://www.instagram.com/tv", Redirects.builtIn);
     List<String> sepatators = ['"video_url":"', '","video_view_count"'];
     String urlId = url.split("/")[4];
-    String api = "https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=%7B%22child_comment_count%22%3A3%2C%22fetch_comment_count%22%3A40%2C%22has_threaded_comments%22%3Atrue%2C%22parent_comment_count%22%3A24%2C%22shortcode%22%3A%22$urlId%22%7D";
-    //log(api);
+    String api =
+        "https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=%7B%22child_comment_count%22%3A3%2C%22fetch_comment_count%22%3A40%2C%22has_threaded_comments%22%3Atrue%2C%22parent_comment_count%22%3A24%2C%22shortcode%22%3A%22$urlId%22%7D";
+
     res = await client.gets(api, Redirects.builtIn);
     String a = await res.transform(utf8.decoder).join();
     Map urls = {
@@ -312,76 +301,129 @@ class Run {
     try {
       String c = a.split(sepatators[0])[1];
       String d = c.split(sepatators[1])[0];
-      // d = d.replaceAll("\\u0026","&");
+
       d = cleaner(d);
-      urls["urls"]["videos"].add(d);
+      urls["urls"]["videos"].add({"url":d,"quality":"hd"});
       return urls;
     } catch (e) {
-      //log("Error from Instagram $e");
+      log("Error from Instagram $e");
       return {"error": "$e"};
     }
   }
 
-  Future<Map>? reddit(String url ) async{
+  Future<Map>? hlsParser(String fileData,String baseUrl) async{
+    Map urls = {
+        "urls":
+        {
+            "videos":[],
+            "audios":[]
+            }
+        };
+    String before = "";
+    for(var line in fileData.split("\n")){
+        if(line.toUpperCase() == "#EXTM3U"){
+            continue;
+        }
+        else if(line.startsWith("#")){
+            if(line.startsWith("#EXT-X-STREAM-INF:")){
+                before = line;
+            }
+            else{
+                if(line.contains("TYPE=AUDIO")){
+                    Map t= {
+                    "url":"$baseUrl/${line.split('URI="')[1].split('.')[0]}.aac",
+                    "quality": "${line.split("HLS_AUDIO_")[1].split(".")[0]}kHz",
+                    };     
+                    urls["urls"]["audios"].add(t);
+                }
+            }
+        }
+        else {
+            if(before.isNotEmpty){
+                Map t= {
+                    "url":"$baseUrl/${line.split('.')[0]}.ts",
+                    "quality": before.split("RESOLUTION=")[1].split(",")[0],
+                };     
+                urls["urls"]["videos"].add(t);
+            }
+        }
+    }
+    return urls;
+  }
+
+  Future<Map>? reddit(String url) async {
+    List<String> sepatators = [' src="https://v.redd.it/', '"'];
+    String baseUrl = "https://v.redd.it";
+    HttpClientResponse res = await client.gets("https://www.reddit.com", Redirects.builtIn);
+    res = await client.gets(url, Redirects.builtIn);
+    String a = await res.transform(utf8.decoder).join();
+    String vidId = a.split(sepatators[0])[1].split(sepatators[1])[0];
+    String newUrl = "$baseUrl/$vidId/";
+    res  = await client.gets(newUrl,Redirects.builtIn);
+    String hlsPlayList = await res.transform(utf8.decoder).join();
+    return await hlsParser(hlsPlayList,"$baseUrl/${vidId.split('/')[0]}")!;
+  }
+
+  Future<Map>? twitter(String url) async {
     return {};
   }
 
-  Future<Map>? twitter(String url ) async{
-    return {};
-  }
-
-  Future<Map>? determine(String url) async{
+  Future<Map>? determine(String url) async {
     String temp = url;
-    if(url.contains("www.")){
-        url = url.replaceFirstMapped("www.",(x)=>"");
+    if (url.contains("www.")) {
+      url = url.replaceFirstMapped("www.", (x) => "");
     }
     url = url.split("https://")[1];
     switch (url.split(".")[0]) {
-          case "youtube" || "youtu":
-            print("Calling Youtube....");
-            return await youtube(temp)!;
-          case "tiktok" :
-            print("Calling TikTok....");
-            return  await tiktok(temp)!;
-          case "facebook"||"fb" :
-            print("Calling Facebook....");
-            return  await facebook(temp)!;
-          case "instagram" :
-            print("Calling Instagram....");
-            return  await instagram(temp)!;
-          case "reddit" :
-            print("Calling Reddit....");
-            return  await reddit(temp)!;
-          case "twitter" :
-            print("Calling Twitter....");
-            return  await twitter(temp)!;
-          default:
-        }
-    return {};
+      case "youtube" || "youtu":
+        print("Calling Youtube....");
+        return await youtube(temp)!;
+      case "tiktok":
+        print("Calling TikTok....");
+        return await tiktok(temp)!;
+      case "facebook" || "fb":
+        print("Calling Facebook....");
+        return await facebook(temp)!;
+      case "instagram":
+        print("Calling Instagram....");
+        return await instagram(temp)!;
+      case "reddit":
+        print("Calling Reddit....");
+        return await reddit(temp)!;
+      case "twitter":
+        print("Calling Twitter....");
+        return await twitter(temp)!;
+      default:
+        print("Bad Url Format ");
+        return {"error":"Bad Url"};
+    }
   }
 }
 
 class Parse {
-  Parse(this.url);
-  final String url;
-
-  Future<String> link() async {
-    List<String> urls = [
-                "https://youtu.be/hcsX5Qd2GLo",
-                "https://www.tiktok.com/@miraculous_bogaboo000/video/7249121848166731013?is_from_webapp=1",
-                "https://www.facebook.com/watch/?v=632518552179712",
-                "https://www.instagram.com/reel/CpKyiMhpM6M/?utm_source=ig_web_button_share_sheet",
-                ];
-    for(var t in urls){
-        dynamic a = Run();
-        dynamic d = await a.determine(t);
-        if(d.containsKey("urls")){
-            for (var url in d["urls"]["videos"]) {
-                print("\n URLS:- [+]\n\t $url");
-            }
-
-        }
-    }
-    return "";
+  Parse();
+  Future<Map> linkGen(String url) async {
+    Run a = Run();
+    dynamic d = await a.determine(url);
+    //     v---v---< just to be sure here
+    return await d;
   }
 }
+
+// Rough ... . .. .
+
+// List<String> urls = [
+    //   "https://youtu.be/hcsX5Qd2GLo",
+    //   "https://www.tiktok.com/@miraculous_bogaboo000/video/7249121848166731013?is_from_webapp=1",
+    //   "https://www.facebook.com/watch/?v=632518552179712",
+    //   "https://www.instagram.com/reel/CpKyiMhpM6M/?utm_source=ig_web_button_share_sheet",
+    // ];
+    // for (var t in urls) {
+    //   dynamic a = Run();
+    //   dynamic d = await a.determine(t);
+    //   if (d.containsKey("urls")) {
+    //     for (var url in d["urls"]["videos"]) {
+    //       print("\n URLS:- [+]\n\t $url");
+    //     }
+    //   }
+    // }
