@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-// var log = print;
-var print = log;
+ var log = print;
+//var print = log;
 
 enum Redirects { noRedirect, builtIn, manual }
 
@@ -95,7 +95,9 @@ class Session {
 
   Future<HttpClientResponse> gets(String durl, Redirects redirect) async {
     var url = Uri.parse(durl);
+    print("(Session) Connecting to Host ... $durl");
     final request = await _client.getUrl(url);
+    print("(Session) Connected to Host ... $durl");
     if (redirect == Redirects.builtIn) {
       request.followRedirects = true;
     } else {
@@ -106,7 +108,6 @@ class Session {
       request.cookies.addAll(
           _cookies.entries.map((entry) => Cookie(entry.key, entry.value)));
     }
-    print("From Gets Of [Requests] [+]\n\t${request.cookies}");
     if (_headers.isNotEmpty) {
       _headers.forEach((x, y) => request.headers.add(x, y));
     }
@@ -117,7 +118,6 @@ class Session {
     });
 
     if (response.statusCode == 302 && redirect == Redirects.manual) {
-        print("From Gets [+]${response.cookies} and for \n\t[-] $_cookies");
         String temp = response.headers['location']![0];
         if(temp.startsWith("/")){
             return await gets(durl, Redirects.manual);
@@ -187,9 +187,7 @@ class Run {
     List<String> sepatators = ['"adaptiveFormats":', '},"playerAds":'];
 
     if (res.statusCode == 200) {
-      Map urls = {
-        "urls": {"videos": [], "audios": [], "others": []}
-      };
+      Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
       String content = await res.transform(utf8.decoder).join();
       try {
         String b = content.split(sepatators[0])[1];
@@ -232,6 +230,20 @@ class Run {
     }
   }
 
+  Future<void> download(String fileName,String url) async{
+    print("(Downloader:) I got [+] $url");
+    File file = File(fileName);
+    HttpClientResponse res = await client.gets(url,Redirects.builtIn);
+    if (res.statusCode == 200 || res.statusCode == 206) {
+      await res.pipe(file.openWrite());
+
+    } else {
+       log("Server responsed with ${res.statusCode} for \n\t(URL)[+]$url");
+       return;
+    }
+    print("(Downloader) Completed Downloading video");
+  }
+
   Future<Map>? tiktok(String url) async {
     await client.gets("https://www.tiktok.com/", Redirects.builtIn);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
@@ -239,14 +251,10 @@ class Run {
     if (res.statusCode == 200) {
       String content = await res.transform(utf8.decoder).join();
       try {
-        Map urls = {
-          "urls": {"videos": [], "audios": []}
-        };
+        Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
         String b = content.split(sepatators[0])[1];
         b = b.split(sepatators[1])[0];
-
         b = cleaner(b);
-
         await tiktokDownload(b);
         b = b.replaceAll("tiktok_m", "unwatermarked");
         urls["urls"]["videos"].add({"url":b,"quality":"hd"});
@@ -260,6 +268,7 @@ class Run {
   }
 
   Future<Map>? facebook(String url) async {
+    print("(FaceBook:) I got [+] $url");
     Map<String, String> headers = {
       'authority': 'www.facebook.com',
       'method': 'GET',
@@ -271,24 +280,27 @@ class Run {
       ',"video_id"'
     ];
     client.setheaders(headers);
+    print("${client._headers}");
+    print("From (Facebook) ${client._cookies}");
     HttpClientResponse res = await client.gets(url, Redirects.manual);
+    print("Here hai tw");
     String a = await res.transform(utf8.decoder).join();
-    Map urls = {
-      "urls": {"videos": [], "audios": []}
-    };
+    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
     if (res.statusCode == 200) {
       String b = a.split(sepatators[0])[1];
       String c = b.split(sepatators[1])[0];
       List lis = jsonDecode(c);
-      for (Map dic in lis) {
-        Map t = dic;
+      for (var dic in lis) {
+        var t = dic;
         t["url"] = t["base_url"];
+        t["quality"] = "hd";
         if (dic["mime_type"] == "video/mp4") {
           urls["urls"]["videos"].add(t);
         } else if (dic["mime_type"] == "audio/mp4") {
           urls["urls"]["audios"].add(t);
         }
       }
+      print("Sending data hai tw ${urls['urls']['videos'][0]}");
       return urls;
     }
 
@@ -305,9 +317,7 @@ class Run {
 
     res = await client.gets(api, Redirects.builtIn);
     String a = await res.transform(utf8.decoder).join();
-    Map urls = {
-      "urls": {"videos": [], "audios": []}
-    };
+    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
     try {
       String c = a.split(sepatators[0])[1];
       String d = c.split(sepatators[1])[0];
@@ -322,13 +332,7 @@ class Run {
   }
 
   Future<Map>? hlsParser(String fileData,String baseUrl) async{
-    Map urls = {
-        "urls":
-        {
-            "videos":[],
-            "audios":[]
-            }
-        };
+    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
     String before = "";
     for(var line in fileData.split("\n")){
         if(line.toUpperCase() == "#EXTM3U"){
@@ -425,7 +429,7 @@ class Parse {
     Run a = Run();
     dynamic d = await a.determine(url);
     //     v---v---< just to be sure here
-    return await d;
+    return d;
   }
 }
 
