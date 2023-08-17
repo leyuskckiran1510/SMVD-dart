@@ -28,14 +28,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
   final myController = TextEditingController();
   Future<String>? responseFuture;
   String downLoadState = "Error";
-  Map data = {
-    "videos": [
-      {"url": "", "quality": "Failed TO Parse"},
-    ],
-    "audios": [
-      {"url": "audio1", "quality": "high"},
-    ],
-  };
+  Map data={};
   String? selectedVideo;
   String? selectedAudio;
 
@@ -46,45 +39,110 @@ class _MyCustomFormState extends State<MyCustomForm> {
   }
 
   Future<String> responseStatus(String url) async {
-    try{
-        print("(responseStatus) Staring Link Parsing... ");
-        Map urls = await parser.Parse().linkGen(url);
-        print("(responseStatus) Link Parsing Completed ... ");
-        if(!data.containsKey("error")){
-            data = urls["urls"];
-            downLoadState = 'Downlaod';
-        }
-        else{
-            data = {
-            "videos": [
-             {"url": ".", "quality": "${data['error']}"},
-                ],
-             "audios": [
-                {"url": "audio1", "quality": "${data['error']}"},
-    ],
-  };
-        }
+    try {
+      print("(responseStatus) Staring Link Parsing... ");
+      data={};
+      Map urls = await parser.Parse().linkGen(url);
+      print("(responseStatus) Link Parsing Completed ... ");
+      print("${urls['urls']['videos'][0]}");
+      if (urls.containsKey("urls")) {
+        data = urls["urls"];
+        downLoadState = 'Downlaod';
+        print("${data}");
+      }
+      else if(urls.containsKey("error")) {
+        data = {
+          "videos": [
+            {"url": ".", "quality": "${data['error']}"},
+          ],
+          "audios": [
+            {"url": "audio1", "quality": "${data['error']}"},
+          ],
+        };
+      }
     }
-    catch(e){
-        return "Error $e";
+    catch (e) {
+      return "Error $e";
     }
     return "Sucess";
   }
 
-  Future<String> startDownload() async{
-    try{
-        print("(startDownload) Stating Video Download..");
-        await parser.Run().download("video.mp4",selectedVideo!);
-        print("(startDownload) Video Downloade Complete ..");
-        print("(startDownload) Stating Audio Download..");
-        await parser.Run().download("audio.mp4",selectedAudio!);
-        print("(startDownload) Audio Downloade Complete ..");
-        return "Sucess";
+  Future<String> startDownload() async {
+    try {
+      print("(startDownload) Stating Video Download..");
+      await parser.Run().download("video.mp4", selectedVideo!);
+      print("(startDownload) Video Downloade Complete ..");
+      print("(startDownload) Stating Audio Download..");
+      await parser.Run().download("audio.mp4", selectedAudio!);
+      print("(startDownload) Audio Downloade Complete ..");
+      return "Sucess";
     }
-    catch(e){
-        return "Error $e";
+    catch (e) {
+      return "Error $e";
     }
   }
+
+  List<DropdownMenuItem<String>> genDropDownItems(String dataKey){
+      List<DropdownMenuItem<String>> items =[];
+    List<dynamic> visited = [];
+    for (var elems in data[dataKey]) {
+        if(!visited.contains(elems['url'])){
+            visited.add(elems['url']);
+            print("( $dataKey DropDown )Making Drop Down for ${elems['url']} and ${elems['quality']}");
+            items.add(DropdownMenuItem<String>(
+                value: elems['url'],
+                child: Text(elems['quality']),
+              ));
+        }
+              
+    }
+
+    return items;
+  }
+
+
+
+  List<Widget> genDropDown() {
+    List<Widget> lis = [];
+    if (data["videos"].isNotEmpty) {
+      lis.add(DropdownButton<String>(
+        value: selectedVideo,
+        hint: const Text('Select Video'),
+        onChanged: (String? newValue) {
+          setState(() {
+            selectedVideo = newValue;
+          });
+        },
+        items: genDropDownItems("videos"),
+      )
+      );
+      lis.add(const SizedBox(height: 20));
+    }
+    if (data["audios"].isNotEmpty) {
+      lis.add(DropdownButton<String>(
+        value: selectedAudio,
+        hint: const Text('Select Audio'),
+        onChanged: (String? newValue) {
+          setState(() {
+            selectedAudio = newValue;
+          });
+        },
+        items: genDropDownItems("audios"),
+      ));
+      lis.add(const SizedBox(height: 20));
+    }
+    lis.add(ElevatedButton(
+      onPressed: () {
+        setState(() {
+          responseFuture = startDownload();
+        });
+      },
+      child: Text(downLoadState),
+    ));
+
+    return lis;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,54 +178,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
                   return AlertDialog(
                     content: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        DropdownButton<String>(
-                          value: selectedVideo,
-                          hint: const Text('Select Video'),
-                          onChanged: (String? newValue){
-                            setState(() {
-                              selectedVideo = newValue;
-                            });
-                          },
-                          items: data['videos']
-                              .map<DropdownMenuItem<String>>(
-                                (dynamic video) =>
-                                    DropdownMenuItem<String>(
-                                  value: video['url'],
-                                  child: Text(video['quality']),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: 20),
-                        DropdownButton<String>(
-                          value: selectedAudio,
-                          hint: const Text('Select Audio'),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedAudio = newValue;
-                            });
-                          },
-                          items: data['audios']
-                              .map<DropdownMenuItem<String>>(
-                                (dynamic audio) =>
-                                    DropdownMenuItem<String>(
-                                  value: audio['url'],
-                                  child: Text(audio['quality']),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height:20),
-                        ElevatedButton(
-                            onPressed: () {
-                                setState(() {
-                                  responseFuture = startDownload();
-                                });
-                            },
-                            child: Text(downLoadState),
-                        )
-                      ],
+                      children: genDropDown(),
                     ),
                   );
                 } else {

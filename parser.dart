@@ -268,7 +268,6 @@ class Run {
   }
 
   Future<Map>? facebook(String url) async {
-    print("(FaceBook:) I got [+] $url");
     Map<String, String> headers = {
       'authority': 'www.facebook.com',
       'method': 'GET',
@@ -280,10 +279,7 @@ class Run {
       ',"video_id"'
     ];
     client.setheaders(headers);
-    print("${client._headers}");
-    print("From (Facebook) ${client._cookies}");
     HttpClientResponse res = await client.gets(url, Redirects.manual);
-    print("Here hai tw");
     String a = await res.transform(utf8.decoder).join();
     Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
     if (res.statusCode == 200) {
@@ -300,7 +296,6 @@ class Run {
           urls["urls"]["audios"].add(t);
         }
       }
-      print("Sending data hai tw ${urls['urls']['videos'][0]}");
       return urls;
     }
 
