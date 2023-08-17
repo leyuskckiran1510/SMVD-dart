@@ -1,6 +1,5 @@
 import 'parser.dart' as parser;
 
-
 void main() async {
   List<String> urlList = [
     "https://youtu.be/hcsX5Qd2GLo",
@@ -12,6 +11,7 @@ void main() async {
     "https://twitter.com/Purple_Elf/status/1689765212117696512",
   ];
   Map urls = await parser.Parse().linkGen(urlList[2]);
+  
   print(urls["urls"]["videos"][0]);
   return;
 }

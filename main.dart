@@ -28,7 +28,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
   final myController = TextEditingController();
   Future<String>? responseFuture;
   String downLoadState = "Error";
-  Map data={};
+  Map urlDatas={};
   String? selectedVideo;
   String? selectedAudio;
 
@@ -41,22 +41,22 @@ class _MyCustomFormState extends State<MyCustomForm> {
   Future<String> responseStatus(String url) async {
     try {
       print("(responseStatus) Staring Link Parsing... ");
-      data={};
+      urlDatas={};
       Map urls = await parser.Parse().linkGen(url);
       print("(responseStatus) Link Parsing Completed ... ");
       print("${urls['urls']['videos'][0]}");
       if (urls.containsKey("urls")) {
-        data = urls["urls"];
+        urlDatas = urls["urls"];
         downLoadState = 'Downlaod';
-        print("${data}");
+        print("${urlDatas}");
       }
       else if(urls.containsKey("error")) {
-        data = {
+        urlDatas = {
           "videos": [
-            {"url": ".", "quality": "${data['error']}"},
+            {"url": ".", "quality": "${urlDatas['error']}"},
           ],
           "audios": [
-            {"url": "audio1", "quality": "${data['error']}"},
+            {"url": "audio1", "quality": "${urlDatas['error']}"},
           ],
         };
       }
@@ -68,13 +68,23 @@ class _MyCustomFormState extends State<MyCustomForm> {
   }
 
   Future<String> startDownload() async {
-    try {
-      print("(startDownload) Stating Video Download..");
-      await parser.Run().download("video.mp4", selectedVideo!);
-      print("(startDownload) Video Downloade Complete ..");
-      print("(startDownload) Stating Audio Download..");
-      await parser.Run().download("audio.mp4", selectedAudio!);
-      print("(startDownload) Audio Downloade Complete ..");
+    try
+    {
+      if(selectedVideo != null && selectedVideo!.isNotEmpty){
+        print("(startDownload) Stating Video Download..");
+        await parser.Run().download("video.mp4", selectedVideo!);
+        print("(startDownload) Video Downloade Complete ..");
+
+      }
+      else if(selectedAudio != null && selectedAudio!.isNotEmpty){
+        print("(startDownload) Stating Audio Download..");
+        await parser.Run().download("audio.mp4", selectedAudio!);
+        print("(startDownload) Audio Downloade Complete ..");
+
+      }
+      else{
+        print("(startDownload) No Url selected..");
+      }
       return "Sucess";
     }
     catch (e) {
@@ -85,7 +95,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
   List<DropdownMenuItem<String>> genDropDownItems(String dataKey){
       List<DropdownMenuItem<String>> items =[];
     List<dynamic> visited = [];
-    for (var elems in data[dataKey]) {
+    for (var elems in urlDatas[dataKey]) {
         if(!visited.contains(elems['url'])){
             visited.add(elems['url']);
             print("( $dataKey DropDown )Making Drop Down for ${elems['url']} and ${elems['quality']}");
@@ -104,7 +114,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
 
   List<Widget> genDropDown() {
     List<Widget> lis = [];
-    if (data["videos"].isNotEmpty) {
+    if (urlDatas["videos"].isNotEmpty) {
       lis.add(DropdownButton<String>(
         value: selectedVideo,
         hint: const Text('Select Video'),
@@ -118,7 +128,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
       );
       lis.add(const SizedBox(height: 20));
     }
-    if (data["audios"].isNotEmpty) {
+    if (urlDatas["audios"].isNotEmpty) {
       lis.add(DropdownButton<String>(
         value: selectedAudio,
         hint: const Text('Select Audio'),
@@ -135,6 +145,8 @@ class _MyCustomFormState extends State<MyCustomForm> {
       onPressed: () {
         setState(() {
           responseFuture = startDownload();
+          myController.text = "";
+          urlDatas={};
         });
       },
       child: Text(downLoadState),
