@@ -187,7 +187,7 @@ class Run {
     List<String> sepatators = ['"adaptiveFormats":', '},"playerAds":'];
 
     if (res.statusCode == 200) {
-      Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
+      Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
       String content = await res.transform(utf8.decoder).join();
       try {
         String b = content.split(sepatators[0])[1];
@@ -202,6 +202,8 @@ class Run {
             urls["urls"]["others"].add(x);
           }
         }
+        String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+        urls["urls"]["title"] = "${title}_youtube";
         return urls;
       } catch (e) {
         return {"error": "$e"};
@@ -211,7 +213,7 @@ class Run {
     }
   }
 
-  Future<void> tiktokDownload(String url) async {
+  Future<void> tiktokDownload(String fileName,String url) async {
     Map<String, String> headers = {
       'authority': 'v16-webapp-prime.tiktok.com',
       'origin': 'https://www.tiktok.com',
@@ -220,7 +222,7 @@ class Run {
       'sec-fetch-dest': 'video',
     };
     url = url.replaceAll("tiktok_m", "unwatermarked");
-    File file = File("test.mp4");
+    File file = File(fileName);
     client.setheaders(headers);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
     if (res.statusCode == 200 || res.statusCode == 206) {
@@ -233,9 +235,12 @@ class Run {
   Future<void> download(String fileName,String url) async{
     print("(Downloader:) I got [+] $url");
     File file = File(fileName);
+    print("(Downloader) Got Requesting to Server  .... "); 
     HttpClientResponse res = await client.gets(url,Redirects.builtIn);
+    print("(Downloader) Got Response From Server  .... "); 
     if (res.statusCode == 200 || res.statusCode == 206) {
       await res.pipe(file.openWrite());
+      print("(Downloader) Completed writing to files .... ");
 
     } else {
        log("Server responsed with ${res.statusCode} for \n\t(URL)[+]$url");
@@ -251,13 +256,17 @@ class Run {
     if (res.statusCode == 200) {
       String content = await res.transform(utf8.decoder).join();
       try {
-        Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
+        Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
         String b = content.split(sepatators[0])[1];
         b = b.split(sepatators[1])[0];
         b = cleaner(b);
-        await tiktokDownload(b);
-        b = b.replaceAll("tiktok_m", "unwatermarked");
-        urls["urls"]["videos"].add({"url":b,"quality":"hd"});
+        //b = b.replaceAll("tiktok_m", "unwatermarked");
+        //urls["urls"]["videos"].add({"url":b,"quality":"alread"});
+
+        String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+        title = "${title}_tiktok";
+        urls["urls"]["title"] = title;
+        await tiktokDownload("$title.mp4",b);
         return urls;
       } catch (e) {
         log("Their Was And Error $e");
@@ -280,10 +289,10 @@ class Run {
     ];
     client.setheaders(headers);
     HttpClientResponse res = await client.gets(url, Redirects.manual);
-    String a = await res.transform(utf8.decoder).join();
-    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
+    String content = await res.transform(utf8.decoder).join();
+    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
     if (res.statusCode == 200) {
-      String b = a.split(sepatators[0])[1];
+      String b = content.split(sepatators[0])[1];
       String c = b.split(sepatators[1])[0];
       List lis = jsonDecode(c);
       for (var dic in lis) {
@@ -296,6 +305,9 @@ class Run {
           urls["urls"]["audios"].add(t);
         }
       }
+      String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+      title = "${title}_facebook";
+      urls["urls"]["title"] = title;
       return urls;
     }
 
@@ -311,14 +323,17 @@ class Run {
         "https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=%7B%22child_comment_count%22%3A3%2C%22fetch_comment_count%22%3A40%2C%22has_threaded_comments%22%3Atrue%2C%22parent_comment_count%22%3A24%2C%22shortcode%22%3A%22$urlId%22%7D";
 
     res = await client.gets(api, Redirects.builtIn);
-    String a = await res.transform(utf8.decoder).join();
-    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
+    String content = await res.transform(utf8.decoder).join();
+    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
     try {
-      String c = a.split(sepatators[0])[1];
+      String c = content.split(sepatators[0])[1];
       String d = c.split(sepatators[1])[0];
 
       d = cleaner(d);
       urls["urls"]["videos"].add({"url":d,"quality":"hd"});
+      String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+      title = "${title}_instagram";
+      urls["urls"]["title"] = title;
       return urls;
     } catch (e) {
       log("Error from Instagram $e");
@@ -326,8 +341,8 @@ class Run {
     }
   }
 
-  Future<Map>? hlsParser(String fileData,String baseUrl) async{
-    Map urls = {"urls": {"videos": [], "audios": [], "others": []}};
+  Future<Map>? hlsParser(String fileData,String baseUrl,String title) async{
+    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
     String before = "";
     for(var line in fileData.split("\n")){
         if(line.toUpperCase() == "#EXTM3U"){
@@ -357,6 +372,9 @@ class Run {
             }
         }
     }
+
+    title = "${title}_reddit";
+    urls["urls"]["title"] = title;
     return urls;
   }
 
@@ -365,12 +383,13 @@ class Run {
     String baseUrl = "https://v.redd.it";
     HttpClientResponse res = await client.gets("https://www.reddit.com", Redirects.builtIn);
     res = await client.gets(url, Redirects.builtIn);
-    String a = await res.transform(utf8.decoder).join();
-    String vidId = a.split(sepatators[0])[1].split(sepatators[1])[0];
+    String content = await res.transform(utf8.decoder).join();
+    String vidId = content.split(sepatators[0])[1].split(sepatators[1])[0];
     String newUrl = "$baseUrl/$vidId/";
     res  = await client.gets(newUrl,Redirects.builtIn);
     String hlsPlayList = await res.transform(utf8.decoder).join();
-    return await hlsParser(hlsPlayList,"$baseUrl/${vidId.split('/')[0]}")!;
+    String title = content.split('"description":"')[1].split('","')[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+    return await hlsParser(hlsPlayList,"$baseUrl/${vidId.split('/')[0]}",title)!;
   }
 
   Future<Map>? twitter(String url) async {

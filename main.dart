@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'parser.dart' as parser;
 
@@ -32,6 +34,9 @@ class _MyCustomFormState extends State<MyCustomForm> {
   String? selectedVideo;
   String? selectedAudio;
 
+
+
+
   @override
   void dispose() {
     myController.dispose();
@@ -48,6 +53,8 @@ class _MyCustomFormState extends State<MyCustomForm> {
       if (urls.containsKey("urls")) {
         urlDatas = urls["urls"];
         downLoadState = 'Downlaod';
+        selectedVideo = urlDatas["videos"][0]['url'] ;
+        selectedAudio = urlDatas["audios"][0]['url'] ;
         print("${urlDatas}");
       }
       else if(urls.containsKey("error")) {
@@ -71,23 +78,27 @@ class _MyCustomFormState extends State<MyCustomForm> {
     try
     {
       if(selectedVideo != null && selectedVideo!.isNotEmpty){
-        print("(startDownload) Stating Video Download..");
-        await parser.Run().download("video.mp4", selectedVideo!);
+        print("(startDownload) Starting Video Download.. for $selectedVideo \n\t [+] ${urlDatas["title"]}");
+        await parser.Run().download("${urlDatas["title"]}.mp4", selectedVideo!);
         print("(startDownload) Video Downloade Complete ..");
-
+        selectedVideo = "";
       }
-      else if(selectedAudio != null && selectedAudio!.isNotEmpty){
-        print("(startDownload) Stating Audio Download..");
-        await parser.Run().download("audio.mp4", selectedAudio!);
+      if(selectedAudio != null && selectedAudio!.isNotEmpty){
+        print("(startDownload) Starting Audio Download.. for $selectedAudio");
+        await parser.Run().download("${urlDatas["title"]}.mp3", selectedAudio!);
         print("(startDownload) Audio Downloade Complete ..");
+        selectedAudio = "";
 
       }
       else{
         print("(startDownload) No Url selected..");
       }
+      urlDatas={};
       return "Sucess";
     }
     catch (e) {
+      print("(startDownload) Got A error $e");
+      urlDatas={};
       return "Error $e";
     }
   }
@@ -106,6 +117,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
         }
               
     }
+    items.add(const DropdownMenuItem<String>(value: 'empty',child:Text('empty')));
 
     return items;
   }
@@ -114,7 +126,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
 
   List<Widget> genDropDown() {
     List<Widget> lis = [];
-    if (urlDatas["videos"].isNotEmpty) {
+    if (urlDatas["videos"] != null && urlDatas["videos"].isNotEmpty) {
       lis.add(DropdownButton<String>(
         value: selectedVideo,
         hint: const Text('Select Video'),
@@ -128,7 +140,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
       );
       lis.add(const SizedBox(height: 20));
     }
-    if (urlDatas["audios"].isNotEmpty) {
+    if (urlDatas["audios"] != null && urlDatas["audios"].isNotEmpty) {
       lis.add(DropdownButton<String>(
         value: selectedAudio,
         hint: const Text('Select Audio'),
@@ -146,7 +158,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
         setState(() {
           responseFuture = startDownload();
           myController.text = "";
-          urlDatas={};
+          downLoadState = "lol";
         });
       },
       child: Text(downLoadState),
@@ -186,7 +198,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
                   return const CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
-                } else if (snapshot.hasData) {
+                } else if (snapshot.hasData && downLoadState!="lol") {
                   return AlertDialog(
                     content: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
