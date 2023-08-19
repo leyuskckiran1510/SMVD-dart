@@ -10,8 +10,9 @@ void main() async {
     "https://www.reddit.com/r/dankvideos/comments/15p9oqg/blind/?utm_source=share&utm_medium=web2x&context=3",
     "https://twitter.com/Purple_Elf/status/1689765212117696512",
   ];
-  Map urls = await parser.Parse().linkGen(urlList[2]);
-  
+  Map urls = await parser.Parse()
+      .linkGen("https://twitter.com/Purple_Elf/status/1689765212117696512");
+
   print(urls["urls"]["videos"][0]);
   return;
 }

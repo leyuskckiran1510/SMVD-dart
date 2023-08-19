@@ -1,79 +1,70 @@
-import 'dart:convert';
 import 'dart:io';
 
+class FilePath {
+  String path;
+  List<FileSystemEntity> dirlist;
+  String choice = "video.mp4";
+  String? last;
+  FilePath(this.path, this.dirlist) {
+    path = Directory(path).absolute.path;
+    last = path;
+  }
 
-class Path{
-    String path;
-    List<String> list;
-    Path(this.path,this.list);
-}
+  @override
+  String toString() {
+    return path;
+  }
 
-class Picker{
+  void selected(String file) {
+    choice = "$path${Platform.pathSeparator}$file";
+  }
 
-    String root = Directory.current as String;
-    static bool chdir(String path){
-        return true;
+  static String home() {
+    if (Platform.isLinux || Platform.isMacOS) {
+      return Platform.environment['HOME']!;
+    } else if (Platform.isWindows) {
+      return Platform.environment['UserProfile']!;
+    } else if (Platform.isAndroid) {
+      return '/storage/emulated/0/';
+    } else if (Platform.isIOS) {
+      return "/";
     }
-    static Future<Path> follow(String root,String folder){
-        String path="";
-        if(Platform.isWindows){
-            path = "$root\\$folder";
-        }
-        else{
-            path = "$root/$folder";
-        }
-        return list(path);
+    return "ok";
+  }
+
+  void back() {
+    if (last != path) {
+      last = path;
     }
+    path = Directory(path).parent.absolute.path;
+  }
 
-    static Future<Path> back(String root){
-        String path="";
-        if(Platform.isWindows){
-            var temp = root.split("\\");
-            if(temp.length-2 > 2) {
-              path = temp.sublist(0,temp.length-2).join("\\");
-            }
-        }
-        else{
-            var temp = root.split("/");
-            if(temp.length-2 > 2) {
-              path = temp.sublist(0,temp.length-2).join("/");
-            }
-        }
-        return list(path);
-    }
+  Future<String> list() async {
+    dirlist = await Directory(path).list(recursive: false).toList();
+    return "ok";
+  }
 
-    static Future<Path> list(String path) async {
-        List<String> outputLines = [];
-
-        Process process = await Process.start('ls', [path]);
-
-        process.stdout.transform(utf8.decoder).listen((data) {
-          outputLines.addAll(data.split('\n'));
+  void show() {
+    dirlist.forEach((x) => {
+          print(x),
+          print(x.uri.pathSegments.lastWhere((x) => x.length > 1)),
         });
+  }
 
-        process.stderr.transform(utf8.decoder).listen((data) {
-        });
-        int exitCode = await process.exitCode;
-        return Path(path,exitCode==0?outputLines:[]);
-      }
+  void previous() {
+    path = last!;
+  }
 
-
-}
-
-String? input({String c=""}){
-    stdout.write("$c:- ");
-    return stdin.readLineSync();
-
-}
-
-
-main()async {
-    Path p = Path(".",[]);
-    while (true){
-        String? line = input(c:"Input The file path ");
-        if(line! =="exit") break;
-        p =(await Picker.list(line));
-        print(p);
-
+  void follow(String folder) {
+    if (last != path) {
+      last = path;
     }
+    path = "$path${Platform.pathSeparator}$folder";
+  }
+}
+
+main() async {
+  FilePath p = FilePath(".", []);
+  await p.list();
+  print(FilePath.home());
 }

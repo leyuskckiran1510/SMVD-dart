@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
- var log = print;
+var log = print;
 //var print = log;
 
 enum Redirects { noRedirect, builtIn, manual }
@@ -118,13 +118,12 @@ class Session {
     });
 
     if (response.statusCode == 302 && redirect == Redirects.manual) {
-        String temp = response.headers['location']![0];
-        if(temp.startsWith("/")){
-            return await gets(durl, Redirects.manual);
-        }
-        else{
-            return await gets(temp, Redirects.manual);
-        }
+      String temp = response.headers['location']![0];
+      if (temp.startsWith("/")) {
+        return await gets(durl, Redirects.manual);
+      } else {
+        return await gets(temp, Redirects.manual);
+      }
     }
 
     return response;
@@ -175,6 +174,13 @@ class Run {
     "user-agent":
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Safari/537.36",
   };
+
+  String saveFileName = "final.mp4";
+  String? downloadUrl;
+  Map urls = {
+    "urls": {"videos": [], "audios": [], "others": [], "title": "","of":"leyuskc"}
+  };
+
   Session client = Session();
   Run() {
     client.setheaders(headers);
@@ -184,14 +190,13 @@ class Run {
     await client.gets("https://youtube.com", Redirects.builtIn);
     HttpClientResponse res = await client.gets(url, Redirects.builtIn);
 
-    List<String> sepatators = ['"adaptiveFormats":', '},"playerAds":'];
+    List<String> sepatators = ['"adaptiveFormats":', "}]", '},"playerAds":'];
 
     if (res.statusCode == 200) {
-      Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
       String content = await res.transform(utf8.decoder).join();
       try {
         String b = content.split(sepatators[0])[1];
-        b = b.split(sepatators[1])[0];
+        b = b.split(sepatators[1])[0] + "}]";
         dynamic dict = jsonDecode(b);
         for (var x in dict) {
           if (x["mimeType"].split("/")[0] == "video") {
@@ -202,10 +207,18 @@ class Run {
             urls["urls"]["others"].add(x);
           }
         }
-        String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+        String title = content
+            .split(RegExp(r'<title[^>]*>'))[1]
+            .split("</title>")[0]
+            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
+            .replaceAll(RegExp(r"[_]+"), "_");
+        if (title.length > 30) {
+          title = title.substring(0, 30);
+        }
         urls["urls"]["title"] = "${title}_youtube";
         return urls;
       } catch (e) {
+        print("(youtbue) $e");
         return {"error": "$e"};
       }
     } else {
@@ -213,38 +226,25 @@ class Run {
     }
   }
 
-  Future<void> tiktokDownload(String fileName,String url) async {
-    Map<String, String> headers = {
-      'authority': 'v16-webapp-prime.tiktok.com',
-      'origin': 'https://www.tiktok.com',
-      'range': 'bytes=0-',
-      'referer': 'https//www.tiktok.com/',
-      'sec-fetch-dest': 'video',
-    };
-    url = url.replaceAll("tiktok_m", "unwatermarked");
-    File file = File(fileName);
-    client.setheaders(headers);
-    HttpClientResponse res = await client.gets(url, Redirects.builtIn);
-    if (res.statusCode == 200 || res.statusCode == 206) {
-      await res.pipe(file.openWrite());
-    } else {
-      log("Error Writing to File ??");
+  Future<void> download() async {
+    print("(Run.download) Statring.... ");
+
+    if (saveFileName.length < 1 || downloadUrl == null) {
+      return;
     }
-  }
+    print("(Run.download) Opening.... $saveFileName");
+//https://www.instagram.com/p/BeDqj9DnOB7/?utm_source=ig_web_button_share_sheet
+    File file = File(saveFileName);
 
-  Future<void> download(String fileName,String url) async{
-    print("(Downloader:) I got [+] $url");
-    File file = File(fileName);
-    print("(Downloader) Got Requesting to Server  .... "); 
-    HttpClientResponse res = await client.gets(url,Redirects.builtIn);
-    print("(Downloader) Got Response From Server  .... "); 
+    print("(Run.download) Connecting.... $downloadUrl");
+    HttpClientResponse res = await client.gets(downloadUrl!, Redirects.builtIn);
+
     if (res.statusCode == 200 || res.statusCode == 206) {
+      print("(Run.download) Writing.... $saveFileName");
       await res.pipe(file.openWrite());
-      print("(Downloader) Completed writing to files .... ");
-
     } else {
-       log("Server responsed with ${res.statusCode} for \n\t(URL)[+]$url");
-       return;
+      log("Server responsed with ${res.statusCode}");
+      return;
     }
     print("(Downloader) Completed Downloading video");
   }
@@ -256,17 +256,28 @@ class Run {
     if (res.statusCode == 200) {
       String content = await res.transform(utf8.decoder).join();
       try {
-        Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
         String b = content.split(sepatators[0])[1];
         b = b.split(sepatators[1])[0];
         b = cleaner(b);
-        //b = b.replaceAll("tiktok_m", "unwatermarked");
-        //urls["urls"]["videos"].add({"url":b,"quality":"alread"});
-
-        String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+        String title = content
+            .split(RegExp(r'<title[^>]*>'))[1]
+            .split("</title>")[0]
+            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
+            .replaceAll(RegExp(r"[_]+"), "_");
         title = "${title}_tiktok";
+        if (title.length > 30) {
+          title = title.substring(0, 30);
+        }
         urls["urls"]["title"] = title;
-        await tiktokDownload("$title.mp4",b);
+        client.setheaders({
+          'authority': 'v16-webapp-prime.tiktok.com',
+          'origin': 'https://www.tiktok.com',
+          'range': 'bytes=0-',
+          'referer': 'https//www.tiktok.com/',
+          'sec-fetch-dest': 'video',
+        });
+        print("TikTok is wokring. .. . . . .");
+        urls["urls"]["videos"].add({"url": b, "quality": "hd-no-watermark"});
         return urls;
       } catch (e) {
         log("Their Was And Error $e");
@@ -290,7 +301,7 @@ class Run {
     client.setheaders(headers);
     HttpClientResponse res = await client.gets(url, Redirects.manual);
     String content = await res.transform(utf8.decoder).join();
-    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
+
     if (res.statusCode == 200) {
       String b = content.split(sepatators[0])[1];
       String c = b.split(sepatators[1])[0];
@@ -298,15 +309,23 @@ class Run {
       for (var dic in lis) {
         var t = dic;
         t["url"] = t["base_url"];
-        t["quality"] = "hd";
         if (dic["mime_type"] == "video/mp4") {
+          t["quality"] = '${t["height"]}x${t["width"]}';
           urls["urls"]["videos"].add(t);
         } else if (dic["mime_type"] == "audio/mp4") {
+          t["quality"] = '${t["bandwidth"] / 1000}kHz';
           urls["urls"]["audios"].add(t);
         }
       }
-      String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+      String title = content
+          .split(RegExp(r'<title[^>]*>'))[1]
+          .split("</title>")[0]
+          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
+          .replaceAll(RegExp(r"[_]+"), "_");
       title = "${title}_facebook";
+      if (title.length > 30) {
+        title = title.substring(0, 30);
+      }
       urls["urls"]["title"] = title;
       return urls;
     }
@@ -315,23 +334,31 @@ class Run {
   }
 
   Future<Map>? instagram(String url) async {
-    HttpClientResponse res =
-        await client.gets("https://www.instagram.com/tv", Redirects.builtIn);
+    HttpClientResponse res = await client.gets(url, Redirects.builtIn);
+    String content = await res.transform(utf8.decoder).join();
+    String title = content
+        .split(RegExp(r'<title[^>]*>'))[1]
+        .split("</title>")[0]
+        .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
+        .replaceAll(RegExp(r"[_]+"), "_");
+    if (title.length > 30) {
+      title = title.substring(0, 30);
+    }
     List<String> sepatators = ['"video_url":"', '","video_view_count"'];
     String urlId = url.split("/")[4];
     String api =
         "https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=%7B%22child_comment_count%22%3A3%2C%22fetch_comment_count%22%3A40%2C%22has_threaded_comments%22%3Atrue%2C%22parent_comment_count%22%3A24%2C%22shortcode%22%3A%22$urlId%22%7D";
 
     res = await client.gets(api, Redirects.builtIn);
-    String content = await res.transform(utf8.decoder).join();
-    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
+    content = await res.transform(utf8.decoder).join();
+
     try {
       String c = content.split(sepatators[0])[1];
       String d = c.split(sepatators[1])[0];
 
       d = cleaner(d);
-      urls["urls"]["videos"].add({"url":d,"quality":"hd"});
-      String title = content.split(RegExp(r'<title[^>]*>'))[1].split("</title>")[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
+      urls["urls"]["videos"].add({"url": d, "quality": "hd"});
+
       title = "${title}_instagram";
       urls["urls"]["title"] = title;
       return urls;
@@ -341,37 +368,35 @@ class Run {
     }
   }
 
-  Future<Map>? hlsParser(String fileData,String baseUrl,String title) async{
-    Map urls = {"urls": {"videos": [], "audios": [], "others": [],"title":""}};
+  Future<Map>? hlsParser(String fileData, String baseUrl, String title) async {
+    print("(hlsParser) Ok I am here.... with $baseUrl");
     String before = "";
-    for(var line in fileData.split("\n")){
-        if(line.toUpperCase() == "#EXTM3U"){
-            continue;
+    for (var line in fileData.split("\n")) {
+      if (line.toUpperCase() == "#EXTM3U") {
+        continue;
+      } else if (line.startsWith("#")) {
+        if (line.startsWith("#EXT-X-STREAM-INF:")) {
+          before = line;
+        } else {
+          if (line.contains("TYPE=AUDIO")) {
+            Map t = {
+              "url": "$baseUrl/${line.split('URI="')[1].split('.')[0]}.aac",
+              "quality": "${line.split("HLS_AUDIO_")[1].split(".")[0]}kHz",
+            };
+            urls["urls"]["audios"].add(t);
+          }
         }
-        else if(line.startsWith("#")){
-            if(line.startsWith("#EXT-X-STREAM-INF:")){
-                before = line;
-            }
-            else{
-                if(line.contains("TYPE=AUDIO")){
-                    Map t= {
-                    "url":"$baseUrl/${line.split('URI="')[1].split('.')[0]}.aac",
-                    "quality": "${line.split("HLS_AUDIO_")[1].split(".")[0]}kHz",
-                    };     
-                    urls["urls"]["audios"].add(t);
-                }
-            }
+      } else {
+        if (before.isNotEmpty) {
+          Map t = {
+            "url": "$baseUrl/${line.split('.')[0]}.ts",
+            "quality": before.split("RESOLUTION=")[1].split(",")[0],
+          };
+          urls["urls"]["videos"].add(t);
         }
-        else {
-            if(before.isNotEmpty){
-                Map t= {
-                    "url":"$baseUrl/${line.split('.')[0]}.ts",
-                    "quality": before.split("RESOLUTION=")[1].split(",")[0],
-                };     
-                urls["urls"]["videos"].add(t);
-            }
-        }
+      }
     }
+    print("(Reddit HLS Downloader ) $urls");
 
     title = "${title}_reddit";
     urls["urls"]["title"] = title;
@@ -381,23 +406,44 @@ class Run {
   Future<Map>? reddit(String url) async {
     List<String> sepatators = [' src="https://v.redd.it/', '"'];
     String baseUrl = "https://v.redd.it";
-    HttpClientResponse res = await client.gets("https://www.reddit.com", Redirects.builtIn);
+    HttpClientResponse res =
+        await client.gets("https://www.reddit.com", Redirects.builtIn);
+    print("(reddit) Calling hls Server...");
     res = await client.gets(url, Redirects.builtIn);
+    print("(reddit) Called hls Server...");
     String content = await res.transform(utf8.decoder).join();
     String vidId = content.split(sepatators[0])[1].split(sepatators[1])[0];
     String newUrl = "$baseUrl/$vidId/";
-    res  = await client.gets(newUrl,Redirects.builtIn);
+    print("(reddit) Calling files hls Server...");
+    res = await client.gets(newUrl, Redirects.builtIn);
+    print("(reddit) Called files hls Server...");
     String hlsPlayList = await res.transform(utf8.decoder).join();
-    String title = content.split('"description":"')[1].split('","')[0].replaceAll(RegExp(r"[^a-zA-Z0-9]"),"_");
-    return await hlsParser(hlsPlayList,"$baseUrl/${vidId.split('/')[0]}",title)!;
+    print("(reddit) Splitting ...");
+    String title = "video_from_reddit_by_leyuskc";
+    try {
+      title = content
+          .split('<shreddit-title title="')[1]
+          .split('">')[0]
+          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
+          .replaceAll(RegExp(r"[_]+"), "_");
+      if (title.length > 30) {
+        title = title.substring(0, 30);
+      }
+    } catch (e) {
+      print("(reddit) error in reddit $e");
+    }
+    print("(reddit) returining hls...");
+    return await hlsParser(
+        hlsPlayList, "$baseUrl/${vidId.split('/')[0]}", title)!;
   }
 
   Future<Map>? twitter(String url) async {
-    HttpClientResponse res = await client.gets("https://www.twitter.com", Redirects.manual);
+    HttpClientResponse res =
+        await client.gets("https://www.twitter.com", Redirects.manual);
     res = await client.gets(url, Redirects.manual);
     print("${res.statusCode}");
     print("Clientes Cookies Now :- ${client._cookies}");
-    Map dic =jsonDecode(await res.transform(utf8.decoder).join());
+    Map dic = jsonDecode(await res.transform(utf8.decoder).join());
     print("${dic}");
     // print(res);
     // print(res.headers);
@@ -413,26 +459,37 @@ class Run {
     switch (url.split(".")[0]) {
       case "youtube" || "youtu":
         print("Calling Youtube....");
+        urls["of"] = "youtube";
         return await youtube(temp)!;
       case "tiktok":
         print("Calling TikTok....");
+        urls["of"] = "tiktok";
         return await tiktok(temp)!;
       case "facebook" || "fb":
         print("Calling Facebook....");
+        urls["of"] = "facebook";
         return await facebook(temp)!;
       case "instagram":
         print("Calling Instagram....");
+        urls["of"] = "instagram";
         return await instagram(temp)!;
       case "reddit":
         print("Calling Reddit....");
+        urls["of"] = "reddit";
         return await reddit(temp)!;
       case "twitter":
         print("Calling Twitter....");
-        throw "\n\t=======================================\n\t|| Twitter Is not implemnted For Now ||\n\t=======================================\n ";
-        // return await twitter(temp)!;
+        urls["of"] = "twitter";
+        String st = """
+        ╔═════════════════════════════════════╗
+        ║ Twitter Is not implemnted For Now   ║
+        ╚═════════════════════════════════════╝
+        """;
+        throw st;
+      // return await twitter(temp)!;
       default:
         print("Bad Url Format ");
-        return {"error":"Bad Url"};
+        return {"error": "Bad Url"};
     }
   }
 }
@@ -450,17 +507,17 @@ class Parse {
 // Rough ... . .. .
 
 // List<String> urls = [
-    //   "https://youtu.be/hcsX5Qd2GLo",
-    //   "https://www.tiktok.com/@miraculous_bogaboo000/video/7249121848166731013?is_from_webapp=1",
-    //   "https://www.facebook.com/watch/?v=632518552179712",
-    //   "https://www.instagram.com/reel/CpKyiMhpM6M/?utm_source=ig_web_button_share_sheet",
-    // ];
-    // for (var t in urls) {
-    //   dynamic a = Run();
-    //   dynamic d = await a.determine(t);
-    //   if (d.containsKey("urls")) {
-    //     for (var url in d["urls"]["videos"]) {
-    //       print("\n URLS:- [+]\n\t $url");
-    //     }
-    //   }
-    // }
+//   "https://youtu.be/hcsX5Qd2GLo",
+//   "https://www.tiktok.com/@miraculous_bogaboo000/video/7249121848166731013?is_from_webapp=1",
+//   "https://www.facebook.com/watch/?v=632518552179712",
+//   "https://www.instagram.com/reel/CpKyiMhpM6M/?utm_source=ig_web_button_share_sheet",
+// ];
+// for (var t in urls) {
+//   dynamic a = Run();
+//   dynamic d = await a.determine(t);
+//   if (d.containsKey("urls")) {
+//     for (var url in d["urls"]["videos"]) {
+//       print("\n URLS:- [+]\n\t $url");
+//     }
+//   }
+// }
