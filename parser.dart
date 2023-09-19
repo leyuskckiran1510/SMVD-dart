@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-var log = print;
-//var print = log;
+//var log = print;
+var print = log;
 
 enum Redirects { noRedirect, builtIn, manual }
 
@@ -56,40 +56,20 @@ class Session {
   Session();
 
   void setcookies(Map<String, String> cookies) {
-    Map<String, String> temp = {};
-    cookies.keys.forEach((x) => temp[x.toUpperCase()] = cookies[x]!);
-    cookies = temp;
-    if (cookies.isNotEmpty) {
-      String upd(String key, String value) {
-        if (cookies.containsKey(key)) {
-          return cookies[key]!;
-        }
-        return value;
+    for (var x in cookies.keys) {
+      String xt = x.toUpperCase();
+      if (!_cookies.containsKey(xt)) {
+        _cookies[xt] = cookies[x]!;
       }
-
-      _cookies.updateAll(upd);
-      cookies.keys.forEach((x) => {
-            if (!_cookies.containsKey(x)) {_cookies[x] = cookies[x]!}
-          });
     }
   }
 
   void setheaders(Map<String, String> headers) {
-    Map<String, String> temp = {};
-    headers.keys.forEach((x) => temp[x.toUpperCase()] = headers[x]!);
-    headers = temp;
-    if (headers.isNotEmpty) {
-      String upd(String key, String value) {
-        if (headers.containsKey(key)) {
-          return headers[key]!;
-        }
-        return value;
+    for (var x in headers.keys) {
+      String xt = x.toUpperCase();
+      if (!_headers.containsKey(xt)) {
+        _headers[xt] = headers[x]!;
       }
-
-      _headers.updateAll(upd);
-      headers.keys.forEach((x) => {
-            if (!_headers.containsKey(x)) {_headers[x] = headers[x]!}
-          });
     }
   }
 
@@ -103,6 +83,7 @@ class Session {
     } else {
       request.followRedirects = false;
     }
+    print("Following Url Redirec? ${request.followRedirects}");
     request.headers.remove('User-Agent', 'Dart/3.0 (dart:io)');
     if (_cookies.isNotEmpty) {
       request.cookies.addAll(
@@ -111,11 +92,13 @@ class Session {
     if (_headers.isNotEmpty) {
       _headers.forEach((x, y) => request.headers.add(x, y));
     }
-
     var response = await request.close();
-    response.cookies.forEach((cookie) {
+    print("Response Headers\n\\\t\n\t\\");
+    print(response.headers.toString());
+
+    for (var cookie in response.cookies) {
       _cookies[cookie.name] = cookie.value;
-    });
+    }
 
     if (response.statusCode == 302 && redirect == Redirects.manual) {
       String temp = response.headers['location']![0];
@@ -143,9 +126,9 @@ class Session {
 
     final response = await request.close();
 
-    response.cookies.forEach((cookie) {
+    for (var cookie in response.cookies) {
       _cookies[cookie.name] = cookie.value;
-    });
+    }
     return response;
   }
 
@@ -178,7 +161,13 @@ class Run {
   String saveFileName = "final.mp4";
   String? downloadUrl;
   Map urls = {
-    "urls": {"videos": [], "audios": [], "others": [], "title": "","of":"leyuskc"}
+    "urls": {
+      "videos": [],
+      "audios": [],
+      "others": [],
+      "title": "",
+      "of": "leyuskc"
+    }
   };
 
   Session client = Session();
@@ -196,7 +185,7 @@ class Run {
       String content = await res.transform(utf8.decoder).join();
       try {
         String b = content.split(sepatators[0])[1];
-        b = b.split(sepatators[1])[0] + "}]";
+        b = "${b.split(sepatators[1])[0]}}]";
         dynamic dict = jsonDecode(b);
         for (var x in dict) {
           if (x["mimeType"].split("/")[0] == "video") {
@@ -210,12 +199,12 @@ class Run {
         String title = content
             .split(RegExp(r'<title[^>]*>'))[1]
             .split("</title>")[0]
-            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
-            .replaceAll(RegExp(r"[_]+"), "_");
-        if (title.length > 30) {
-          title = title.substring(0, 30);
+            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "-")
+            .replaceAll(RegExp(r"[-]+"), "-");
+        if (title.length > 10) {
+          title = title.substring(0, 10);
         }
-        urls["urls"]["title"] = "${title}_youtube";
+        urls["urls"]["title"] = "${title}-youtube";
         return urls;
       } catch (e) {
         print("(youtbue) $e");
@@ -229,13 +218,11 @@ class Run {
   Future<void> download() async {
     print("(Run.download) Statring.... ");
 
-    if (saveFileName.length < 1 || downloadUrl == null) {
+    if (saveFileName.isEmpty || downloadUrl == null) {
       return;
     }
     print("(Run.download) Opening.... $saveFileName");
-//https://www.instagram.com/p/BeDqj9DnOB7/?utm_source=ig_web_button_share_sheet
     File file = File(saveFileName);
-
     print("(Run.download) Connecting.... $downloadUrl");
     HttpClientResponse res = await client.gets(downloadUrl!, Redirects.builtIn);
 
@@ -255,6 +242,7 @@ class Run {
     List<String> sepatators = ['"playAddr":"', '","downloadAddr"'];
     if (res.statusCode == 200) {
       String content = await res.transform(utf8.decoder).join();
+      print("content");
       try {
         String b = content.split(sepatators[0])[1];
         b = b.split(sepatators[1])[0];
@@ -262,11 +250,11 @@ class Run {
         String title = content
             .split(RegExp(r'<title[^>]*>'))[1]
             .split("</title>")[0]
-            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
-            .replaceAll(RegExp(r"[_]+"), "_");
-        title = "${title}_tiktok";
-        if (title.length > 30) {
-          title = title.substring(0, 30);
+            .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "-")
+            .replaceAll(RegExp(r"[-]+"), "-");
+        title = "${title}-tiktok";
+        if (title.length > 10) {
+          title = title.substring(0, 10);
         }
         urls["urls"]["title"] = title;
         client.setheaders({
@@ -320,11 +308,11 @@ class Run {
       String title = content
           .split(RegExp(r'<title[^>]*>'))[1]
           .split("</title>")[0]
-          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
-          .replaceAll(RegExp(r"[_]+"), "_");
-      title = "${title}_facebook";
-      if (title.length > 30) {
-        title = title.substring(0, 30);
+          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "-")
+          .replaceAll(RegExp(r"[-]+"), "-");
+      title = "${title}-facebook";
+      if (title.length > 10) {
+        title = title.substring(0, 10);
       }
       urls["urls"]["title"] = title;
       return urls;
@@ -339,10 +327,10 @@ class Run {
     String title = content
         .split(RegExp(r'<title[^>]*>'))[1]
         .split("</title>")[0]
-        .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
-        .replaceAll(RegExp(r"[_]+"), "_");
-    if (title.length > 30) {
-      title = title.substring(0, 30);
+        .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "-")
+        .replaceAll(RegExp(r"[-]+"), "-");
+    if (title.length > 10) {
+      title = title.substring(0, 10);
     }
     List<String> sepatators = ['"video_url":"', '","video_view_count"'];
     String urlId = url.split("/")[4];
@@ -359,7 +347,7 @@ class Run {
       d = cleaner(d);
       urls["urls"]["videos"].add({"url": d, "quality": "hd"});
 
-      title = "${title}_instagram";
+      title = "${title}-instagram";
       urls["urls"]["title"] = title;
       return urls;
     } catch (e) {
@@ -398,7 +386,7 @@ class Run {
     }
     print("(Reddit HLS Downloader ) $urls");
 
-    title = "${title}_reddit";
+    title = "${title}-reddit";
     urls["urls"]["title"] = title;
     return urls;
   }
@@ -424,10 +412,10 @@ class Run {
       title = content
           .split('<shreddit-title title="')[1]
           .split('">')[0]
-          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "_")
-          .replaceAll(RegExp(r"[_]+"), "_");
-      if (title.length > 30) {
-        title = title.substring(0, 30);
+          .replaceAll(RegExp(r"[^a-zA-Z0-9]"), "-")
+          .replaceAll(RegExp(r"[-]+"), "-");
+      if (title.length > 10) {
+        title = title.substring(0, 10);
       }
     } catch (e) {
       print("(reddit) error in reddit $e");
@@ -455,7 +443,11 @@ class Run {
     if (url.contains("www.")) {
       url = url.replaceFirstMapped("www.", (x) => "");
     }
+    if(url.contains("vt.")){
+      url = url.replaceFirstMapped("vt.", (x) => "");
+    }
     url = url.split("https://")[1];
+    print(url);
     switch (url.split(".")[0]) {
       case "youtube" || "youtu":
         print("Calling Youtube....");
@@ -499,7 +491,6 @@ class Parse {
   Future<Map> linkGen(String url) async {
     Run a = Run();
     dynamic d = await a.determine(url);
-    //     v---v---< just to be sure here
     return d;
   }
 }

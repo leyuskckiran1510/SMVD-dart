@@ -8,11 +8,11 @@ class FilePicker extends StatelessWidget {
   final String fileNameToSave;
   final void Function(String selectedFile) onFileSelected;
 
-  FilePicker(
+  const FilePicker(
       {Key? key, this.fileNameToSave = "test", required this.onFileSelected})
       : super(key: key);
   @override
-  Widget build(BuildContext cntxt) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: "FilePicker",
       home: Picker(
@@ -25,7 +25,8 @@ class Picker extends StatefulWidget {
   final String fileNameToSave;
   final void Function(String selectedFile) onFileSelected;
 
-  Picker({required this.fileNameToSave, required this.onFileSelected});
+  const Picker(
+      {super.key, required this.fileNameToSave, required this.onFileSelected});
 
   @override
   State<Picker> createState() {
@@ -63,7 +64,7 @@ class _Picker extends State<Picker> {
                     folders()
                   })
             },
-            child: Text("Home"),
+            child: const Text("Home"),
           )),
           Flexible(
               child: ElevatedButton(
@@ -74,7 +75,7 @@ class _Picker extends State<Picker> {
                     folders()
                   })
             },
-            child: Text("Previous"),
+            child: const Text("Previous"),
           )),
           Flexible(child: Text("$current")),
           Flexible(
@@ -85,7 +86,7 @@ class _Picker extends State<Picker> {
                 responseFuture = current.list();
               });
             },
-            child: Text("Back"),
+            child: const Text("Back"),
           )),
           Flexible(
               child: ElevatedButton(
@@ -97,7 +98,7 @@ class _Picker extends State<Picker> {
                     onFileSelected(current.choice),
                   })
             },
-            child: Text("Select"),
+            child: const Text("Select"),
           ))
         ],
       )

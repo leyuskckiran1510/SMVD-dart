@@ -1,9 +1,10 @@
-import 'dart:async';
-import 'dart:ffi';
-
-import 'pickerGui.dart';
+import 'dart:developer';
+import 'picker_gui.dart';
 import 'parser.dart' as parser;
 import 'package:flutter/material.dart';
+
+//var log = print;
+var print = log;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,7 +14,7 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       title: 'Leyuskc Video Downloader',
       home: MyCustomForm(),
-      //color: Color.fromARGB(),
+      color: Color.fromARGB(1, 1, 1, 1),
     );
   }
 }
@@ -29,7 +30,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
   final myController = TextEditingController();
   Future<dynamic>? responseFuture;
   String? loadingMessage;
-  String downLoadState = "default";
+  String downLoadState = "Wrong Url";
   parser.Run parserInstance = parser.Run();
   String? selectedVideo;
   String? selectedAudio;
@@ -57,7 +58,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
         await Navigator.of(context).push<String>(
           MaterialPageRoute(
             builder: (context) => AlertDialog(
-              title: Text("!!!!Error!!!!"),
+              title: const Text("!!!!Error!!!!"),
               content: ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -96,14 +97,13 @@ class _MyCustomFormState extends State<MyCustomForm> {
         ),
       ),
     );
-    setState((){
-        responseFuture = parserInstance.download();
-        loadingMessage = loadingMessageByPlatform();
-
+    setState(() {
+      responseFuture = parserInstance.download();
+      loadingMessage = loadingMessageByPlatform();
     });
   }
 
-  String loadingMessageByPlatform(){
+  String loadingMessageByPlatform() {
     switch (parserInstance.urls["of"]) {
       case "youtube":
         return "You are trying to download youtube video and youtube takes ages to download for no reason will speed it up in next update";
@@ -126,7 +126,6 @@ class _MyCustomFormState extends State<MyCustomForm> {
       default:
         return "Unknown PlatForm....";
     }
-    return "";
   }
 
   Future<String> startDownload() async {
@@ -142,7 +141,7 @@ class _MyCustomFormState extends State<MyCustomForm> {
       }
       if (selectedAudio != null && selectedAudio!.isNotEmpty) {
         print("(startDownload) Starting Audio Download.. for $selectedAudio");
-        if (parserInstance.saveFileName.length == "final.mp4") {
+        if (parserInstance.saveFileName == "final.mp4") {
           await filePicker(selectedAudio!, "mp3");
         } else {
           parserInstance.saveFileName =
@@ -178,8 +177,10 @@ class _MyCustomFormState extends State<MyCustomForm> {
         ));
       }
     }
-    items.add(
-        const DropdownMenuItem<String>(value: 'empty', child: Text('empty')));
+    if (items.isEmpty) {
+      items.add(
+          const DropdownMenuItem<String>(value: 'empty', child: Text('empty')));
+    }
 
     return items;
   }
@@ -199,6 +200,8 @@ class _MyCustomFormState extends State<MyCustomForm> {
         items: genDropDownItems("videos"),
       ));
       lis.add(const SizedBox(height: 20));
+    } else {
+      selectedVideo = "";
     }
     if (parserInstance.urls["urls"]["audios"] != null &&
         parserInstance.urls["urls"]["audios"].isNotEmpty) {
@@ -213,13 +216,16 @@ class _MyCustomFormState extends State<MyCustomForm> {
         items: genDropDownItems("audios"),
       ));
       lis.add(const SizedBox(height: 20));
+    } else {
+      selectedAudio = "";
     }
+
     lis.add(ElevatedButton(
       onPressed: () {
         setState(() {
           responseFuture = startDownload();
           myController.text = "";
-          downLoadState = "lol";
+          downLoadState = "initiated";
           loadingMessage = "Download Starting..";
         });
       },
@@ -233,23 +239,21 @@ class _MyCustomFormState extends State<MyCustomForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Social Media Video Downloader'),                 
+        title: const Text('Social Media Video Downloader'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text('Instagram|TikTok|Youtube|FaceBook|Reddit',style:
-                       TextStyle(
-                                  fontSize: 22,
-                                  foreground:Paint()
-                                  ..style = PaintingStyle.fill
-                                  ..strokeWidth = 1
-                                  ..color = Colors.blue[700]!
-                                  ,
-                                  )
-                       ),
-            const SizedBox(height:50),
+            Text('Instagram|TikTok|Youtube|FaceBook|Reddit',
+                style: TextStyle(
+                  fontSize: 22,
+                  foreground: Paint()
+                    ..style = PaintingStyle.fill
+                    ..strokeWidth = 1
+                    ..color = Colors.blue[700]!,
+                )),
+            const SizedBox(height: 50),
             TextFormField(
               controller: myController,
               decoration: const InputDecoration(labelText: 'Enter URL'),
@@ -258,6 +262,10 @@ class _MyCustomFormState extends State<MyCustomForm> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
+                  if (responseFuture != null) {
+                    responseFuture!.timeout(const Duration(seconds: 0),
+                        onTimeout: () => "timeout");
+                  }
                   responseFuture = responseStatus(myController.text);
                   loadingMessage = "Finding downlaodable files";
                 });
@@ -270,12 +278,15 @@ class _MyCustomFormState extends State<MyCustomForm> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Column(
-                              children:[
-                              CircularProgressIndicator(semanticsLabel: loadingMessage,value:(snapshot.data is Double)?snapshot.data:null),
-                              SizedBox(height: 10),
-                              Text(loadingMessage!),
-                              ],
-                );
+                    children: [
+                      CircularProgressIndicator(
+                          semanticsLabel: loadingMessage,
+                          value:
+                              (snapshot.data is double) ? snapshot.data : null),
+                      const SizedBox(height: 10),
+                      Text(loadingMessage!),
+                    ],
+                  );
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else if (snapshot.hasData && downLoadState != "lol") {
@@ -292,9 +303,8 @@ class _MyCustomFormState extends State<MyCustomForm> {
             ),
           ],
         ),
-
       ),
-      backgroundColor: const Color.fromARGB(0xff,0xcf,0xcf,0xcf),
+      backgroundColor: const Color.fromARGB(0xff, 0xcf, 0xcf, 0xcf),
     );
   }
 }

@@ -24,10 +24,11 @@ doc/api/
 *.js.map
 
 *.so
-test.*
+test*
 *.mp4
 *.json
 delete.*
+*.apk
 
 .flutter-plugins
 .flutter-plugins-dependencies
