@@ -20,8 +20,8 @@ flutter run
 ```
 
 # Dependency
-    1.Download [Flutter](https://docs.flutter.dev/get-started/install).
-    2. Confirm flutetr installation
+1.Download [Flutter](https://docs.flutter.dev/get-started/install).
+2. Confirm flutetr installation
 ```bash
 flutter --version
 flutter doctor
