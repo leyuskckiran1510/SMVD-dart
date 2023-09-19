@@ -3,29 +3,29 @@ Social Media Video Downloader class for dart/flutter, given a link of SM(facebok
 
 # Building
 
-        Linux/Unix
-```console
+## Linux/Unix
+```bash
 flutter create app_name
 git clone https://github.com/leyuskckiran1510/SMVD-dart.git
 mv SMVD-dart/*  app_name/lib/*
 ```
-        Windows/Dos
-```console
+## Windows/Dos
+```bash
 flutter create app_name
 git clone https://github.com/leyuskckiran1510/SMVD-dart.git
 mv SMVD-dart\*  app_name\lib\*
 ```
-```console
+```bash
 flutter run
 ```
 
 # Dependency
     1.Download [Flutter](https://docs.flutter.dev/get-started/install).
     2. Confirm flutetr installation
-    ```console
-    flutter --version
-    flutter doctor
-    ````
+```bash
+flutter --version
+flutter doctor
+````
 
 # Download Release
   [Download Now](https://github.com/leyuskckiran1510/SMVD-dart/releases).
@@ -33,10 +33,10 @@ flutter run
   for linux users download the zip file and follow below installation guide.
 
 # Installation (linux)
-    ```console
-    unzip filename.zip
-    cd filename
-    ./my_app
-    ```
+```bash
+unzip filename.zip
+cd filename
+./my_app
+```
 
 
